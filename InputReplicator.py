@@ -30,6 +30,14 @@ class InputReplicatorApp:
         self.stop_label = tk.Label(root, text="Press 'S' to stop recording")
         self.stop_label.pack()
 
+        self.iterations_entry = tk.Entry(root)
+        self.iterations_entry.pack()
+        self.num_iterations = 1
+        self.focus_label = tk.Label(root, text="")
+        self.focus_label.pack()
+        self.iterations_entry.bind("<Return>", self.handle_iterations_entry)
+        self.iterations_entry.bind("<FocusOut>", self.remove_focus)
+
         self.play_label = tk.Label(root, text="Press 'P' to replay recording")
         self.play_label.pack()
 
@@ -63,6 +71,23 @@ class InputReplicatorApp:
         self.is_recording = False
         logging.info("Stopped recording")
 
+    def start_replay_loop(self):
+        try:
+            self.num_iterations = int(self.iterations_entry.get())
+        except ValueError:
+            logging.error("Invalid number of iterations")
+
+    def handle_iterations_entry(self, event):
+        try:
+            self.num_iterations = int(self.iterations_entry.get())
+            self.remove_focus()
+            self.replay_recorded()
+        except ValueError:
+            logging.error("Invalid number of iterations")
+
+    def remove_focus(self, event=None):
+        self.focus_label.focus_set()
+
     def on_mouse_move(self, x, y):
         if self.is_recording:
             self.recorded_actions.append(("move", (x, y)))
@@ -80,20 +105,21 @@ class InputReplicatorApp:
             logging.info(f"Scroll: x={x}, y={y}, dx={dx}, dy={dy}")
 
     def replay_recorded(self, event=None):
-        for action, data in self.recorded_actions:
-            if action == "move":
-                x, y = data
-                self.mouse.position = (x, y)
-            elif action == "click":
-                x, y, button = data
-                self.mouse.position = (x, y)
-                self.random_sleep()  # wait for a more humain behavior click
-                self.mouse.click(button)
-            elif action == "scroll":
-                x, y, dx, dy = data
-                self.mouse.scroll(dx, dy)
-            logging.info(f"Replayed action: {action}, data={data}")
-            time.sleep(self.delay)
+        for _ in range(self.num_iterations):
+            for action, data in self.recorded_actions:
+                if action == "move":
+                    x, y = data
+                    self.mouse.position = (x, y)
+                elif action == "click":
+                    x, y, button = data
+                    self.mouse.position = (x, y)
+                    self.random_sleep()  # wait for a more human behavior click
+                    self.mouse.click(button)
+                elif action == "scroll":
+                    x, y, dx, dy = data
+                    self.mouse.scroll(dx, dy)
+                logging.info(f"Replayed action: {action}, data={data}")
+                time.sleep(self.delay)
 
 
     def random_sleep(self):
