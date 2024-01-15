@@ -11,46 +11,39 @@ class InputReplicatorApp:
         self.root = root
         self.root.title("Input Replicator")
 
-        # Define initial size of app
         self.initial_width = 600
         self.initial_height = 300
-        self.root.geometry(f"{self.initial_width}x{self.initial_height}")
-        
         self.screen_width = root.winfo_screenwidth()
         self.screen_height = root.winfo_screenheight()
 
-        #Emergency stop
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)  # Listener for keyboard events
+        # Emergency stop
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
         self.emergency_stop_flag = False
 
-        # other initialisations...
-        self.min_click_delay = 0.1  # minimum delay between clicks (in seconds)
-        self.max_click_delay = 0.5  # maximum delay between clicks (in seconds)
-        self.stop_replay_flag = False  # Flag to stop replay
+        # Other initializations...
+        self.min_click_delay = 0.1
+        self.max_click_delay = 0.5
+        self.stop_replay_flag = False
 
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
         self.logger = logging.getLogger()
 
         self.record_label = tk.Label(root, text="Press 'R' to start recording")
-
         self.stop_label = tk.Label(root, text="Press 'S' to stop recording")
-
         self.iterations_entry = tk.Entry(root)
         self.num_iterations = 1
         self.focus_label = tk.Label(root, text="")
         self.iterations_entry.bind("<Return>", self.handle_iterations_entry)
         self.iterations_entry.bind("<FocusOut>", self.remove_focus)
-
         self.replay_label = tk.Label(root, text="Press 'P' to replay recording")
         self.replay_button = tk.Button(root, text="Replay", command=self.replay_recorded)
-        self.replay_button.grid(row=5, column=0, padx=10, pady=10, sticky="w")
-
 
         self.record_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.stop_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.iterations_entry.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-        self.focus_label.grid(row=3, column=0)  # Espace vide pour perdre le focus
+        self.focus_label.grid(row=3, column=0)
         self.replay_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+        self.replay_button.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
         self.log_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=50, height=10)
         self.log_text.grid(row=0, column=1, rowspan=5, padx=10, pady=10, sticky="e")
@@ -63,8 +56,7 @@ class InputReplicatorApp:
         self.is_recording = False
         self.mouse = Controller()
         self.delay = 0.0025
-
-        self.mouse_listener = None  # Listener for mouse events
+        self.mouse_listener = None
 
         self.root.after(0, self.start_mouse_listener)
         self.start_keyboard_listener()
@@ -96,16 +88,14 @@ class InputReplicatorApp:
         try:
             self.num_iterations = int(self.iterations_entry.get())
             self.remove_focus()
-            self.log("Iteration set to : {} ".format(self.num_iterations))
-            #self.replay_recorded()  plus bon ?
+            self.log("Iteration set to: {}".format(self.num_iterations))
         except ValueError:
             self.log("Invalid number of iterations")
             logging.error("Invalid number of iterations")
 
     def log(self, message):
         self.log_text.insert(tk.END, message + "\n")
-        self.log_text.see(tk.END)  # Défilement automatique vers le bas
-
+        self.log_text.see(tk.END)
 
     def remove_focus(self, event=None):
         self.focus_label.focus_set()
@@ -130,37 +120,34 @@ class InputReplicatorApp:
         self.replay_recorded()
 
     def replay_recorded(self, event=None):
-        #self.stop_replay_flag = False  # Reset the flag
         self.emergency_stop_flag = False
         if self.num_iterations == 0:
             self.log("Infinite loop started")
             while not self.emergency_stop_flag:
-                self.perform_replay(iteration=None) # None for infinite
+                self.perform_replay(iteration=None)
         else:
             for i in range(self.num_iterations, 0, -1):
                 if self.emergency_stop_flag:
-                    break  # Stop the replay
+                    break
                 self.perform_replay(iteration=i)
-            
 
     def perform_replay(self, iteration=None):
         for action, data in self.recorded_actions:
-                if action == "move":
-                    x, y = data
-                    self.mouse.position = (x, y)
-                elif action == "click":
-                    x, y, button = data
-                    self.mouse.position = (x, y)
-                    self.random_sleep()  # wait for a more human behavior click
-                    self.mouse.click(button)
-                elif action == "scroll":
-                    x, y, dx, dy = data
-                    self.mouse.scroll(dx, dy)
-                self.log(f"Replayed action: {action}, data={data}")
-                if iteration is not None:
-                    self.log(f"Iterations left: {iteration}")
-                time.sleep(self.delay)
-
+            if action == "move":
+                x, y = data
+                self.mouse.position = (x, y)
+            elif action == "click":
+                x, y, button = data
+                self.mouse.position = (x, y)
+                self.random_sleep()
+                self.mouse.click(button)
+            elif action == "scroll":
+                x, y, dx, dy = data
+                self.mouse.scroll(dx, dy)
+            self.log(f"Replayed action: {action}, data={data}")
+            if iteration is not None:
+                self.log(f"Iterations left: {iteration}")
+            time.sleep(self.delay)
 
     def random_sleep(self):
         delay = random.uniform(self.min_click_delay, self.max_click_delay)
@@ -172,11 +159,11 @@ class InputReplicatorApp:
 
     def on_key_press(self, key):
         try:
-            if key == keyboard.Key.esc and not self.emergency_stop_flag: # avoid double logs when escape button is released
+            if key == keyboard.Key.esc and not self.emergency_stop_flag:
                 self.emergency_stop()
                 self.log("Emergency stop")
         except AttributeError:
-            pass  # Ignore non-keyboard keys
+            pass
 
     def emergency_stop(self):
         self.emergency_stop_flag = True
